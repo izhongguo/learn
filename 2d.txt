@@ -1,241 +1,107 @@
 #include <cairo.h>
 #include <gtk/gtk.h>
 
-static void do_drawing(cairo_t *);
-
-int points[11][2] = { 
-    { 0, 85 }, 
-    { 75, 75 }, 
-    { 100, 10 }, 
-    { 125, 75 }, 
-    { 200, 85 },
-    { 150, 125 }, 
-    { 160, 190 },
-    { 100, 150 }, 
-    { 40, 190 },
-    { 50, 125 },
-    { 0, 85 } 
-};
+void draw_gradient1(cairo_t *);
+void draw_gradient2(cairo_t *);
+void draw_gradient3(cairo_t *);
 
 static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, 
     gpointer user_data)
-{
-  do_drawing(cr);
+{         
+  draw_gradient1(cr);
+  draw_gradient2(cr);
+  draw_gradient3(cr);  
 
   return FALSE;
 }
 
-static void do_drawing(cairo_t *cr)
-{ 
-  cairo_set_source_rgb(cr, 0.6, 0.6, 0.6);
-  cairo_set_line_width(cr, 1);
+void draw_gradient1(cairo_t *cr)
+{
+  cairo_pattern_t *pat1;  
+  pat1 = cairo_pattern_create_linear(0.0, 0.0,  350.0, 350.0);
 
-  gint i;
-  for (i = 0; i < 10; i++) {
-      cairo_line_to(cr, points[i][0], points[i][1]);
+  gdouble j;
+  gint count = 1;
+  for ( j = 0.1; j < 1; j += 0.1 ) {
+      if (( count % 2 ))  {
+          cairo_pattern_add_color_stop_rgb(pat1, j, 0, 0, 0);
+      } else { 
+          cairo_pattern_add_color_stop_rgb(pat1, j, 1, 0, 0);
+      }
+   count++;
   }
 
-  cairo_close_path(cr);
-  cairo_stroke_preserve(cr);
-  cairo_fill(cr);
-
-  cairo_move_to(cr, 240, 40);
-  cairo_line_to(cr, 240, 160);
-  cairo_line_to(cr, 350, 160);
-  cairo_close_path(cr);
-
-  cairo_stroke_preserve(cr);
-  cairo_fill(cr);
-
-  cairo_move_to(cr, 380, 40);
-  cairo_line_to(cr, 380, 160);
-  cairo_line_to(cr, 450, 160);
-  cairo_curve_to(cr, 440, 155, 380, 145, 380, 40);
-
-  cairo_stroke_preserve(cr);
+  cairo_rectangle(cr, 20, 20, 300, 100);
+  cairo_set_source(cr, pat1);
   cairo_fill(cr);  
+  
+  cairo_pattern_destroy(pat1);
+}
+
+void draw_gradient2(cairo_t *cr)
+{
+  cairo_pattern_t *pat2;
+  pat2 = cairo_pattern_create_linear(0.0, 0.0,  350.0, 0.0);
+
+  gdouble i;
+  gint count = 1;
+  for ( i = 0.05; i < 0.95; i += 0.025 ) {
+      if (( count % 2 ))  {
+          cairo_pattern_add_color_stop_rgb(pat2, i, 0, 0, 0);
+      } else { 
+          cairo_pattern_add_color_stop_rgb(pat2, i, 0, 0, 1);
+      }
+   count++;
+  }
+
+  cairo_rectangle(cr, 20, 140, 300, 100);
+  cairo_set_source(cr, pat2);
+  cairo_fill(cr);  
+  
+  cairo_pattern_destroy(pat2);
+}
+
+void draw_gradient3(cairo_t *cr)
+{
+  cairo_pattern_t *pat3;
+  pat3 = cairo_pattern_create_linear(20.0, 260.0, 20.0, 360.0);
+
+  cairo_pattern_add_color_stop_rgb(pat3, 0.1, 0, 0, 0);
+  cairo_pattern_add_color_stop_rgb(pat3, 0.5, 1, 1, 0);
+  cairo_pattern_add_color_stop_rgb(pat3, 0.9, 0, 0, 0);
+
+  cairo_rectangle(cr, 20, 260, 300, 100);
+  cairo_set_source(cr, pat3);
+  cairo_fill(cr);  
+  
+  cairo_pattern_destroy(pat3);
 }
 
 int main(int argc, char *argv[])
 {
   GtkWidget *window;
-  GtkWidget *darea;
+  GtkWidget *darea;  
 
   gtk_init(&argc, &argv);
 
   window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
   darea = gtk_drawing_area_new();
-  gtk_container_add(GTK_CONTAINER(window), darea);
-
-  g_signal_connect(G_OBJECT(darea), "draw", 
-      G_CALLBACK(on_draw_event), NULL);  
-  g_signal_connect(window, "destroy",
-      G_CALLBACK(gtk_main_quit), NULL);
-
-  gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-  gtk_window_set_default_size(GTK_WINDOW(window), 460, 240); 
-  gtk_window_set_title(GTK_WINDOW(window), "Other shapes");
-
-  gtk_widget_show_all(window);
-
-  gtk_main();
-
-  return 0;
-}
-
-
-
-
-
-static void do_drawing(cairo_t *cr)
-{
-  cairo_set_source_rgb(cr, 0.6, 0.6, 0.6);
-  cairo_set_line_width(cr, 1);
-
-  cairo_rectangle(cr, 20, 20, 120, 80);
-  cairo_rectangle(cr, 180, 20, 80, 80);
-  cairo_stroke_preserve(cr);
-  cairo_fill(cr);
-
-  cairo_arc(cr, 330, 60, 40, 0, 2*M_PI);
-  cairo_stroke_preserve(cr);
-  cairo_fill(cr);
-
-  cairo_arc(cr, 90, 160, 40, M_PI/4, M_PI);
-  cairo_close_path(cr);
-  cairo_stroke_preserve(cr);
-  cairo_fill(cr);
-
-  cairo_translate(cr, 220, 180);
-  cairo_scale(cr, 1, 0.7);
-  cairo_arc(cr, 0, 0, 50, 0, 2*M_PI);
-  cairo_stroke_preserve(cr);
-  cairo_fill(cr);
-}
-
-
-
-
-static void do_drawing(cairo_t *cr)
-{ 
-  cairo_set_source_rgb(cr, 0.5, 0.5, 1);
-  cairo_rectangle(cr, 20, 20, 100, 100);
-  cairo_fill(cr);
-
-  cairo_set_source_rgb(cr, 0.6, 0.6, 0.6);
-  cairo_rectangle(cr, 150, 20, 100, 100);
-  cairo_fill(cr);
- 
-  cairo_set_source_rgb(cr, 0, 0.3, 0);
-  cairo_rectangle(cr, 20, 140, 100, 100);
-  cairo_fill(cr);
-
-  cairo_set_source_rgb(cr, 1, 0, 0.5);
-  cairo_rectangle(cr, 150, 140, 100, 100);
-  cairo_fill(cr);  
-}
-
-
-
-#include <cairo.h>
-#include <gtk/gtk.h>
-
-static void do_drawing(cairo_t *);
-
-cairo_surface_t *surface1;
-cairo_surface_t *surface2;
-cairo_surface_t *surface3;
-cairo_surface_t *surface4;
-
-static void create_surfaces() {
-  surface1 = cairo_image_surface_create_from_png("blueweb.png");
-  surface2 = cairo_image_surface_create_from_png("maple.png");
-  surface3 = cairo_image_surface_create_from_png("crack.png");
-  surface4 = cairo_image_surface_create_from_png("chocolate.png");
-}
-
-static void destroy_surfaces() {
-  cairo_surface_destroy(surface1);
-  cairo_surface_destroy(surface2);
-  cairo_surface_destroy(surface3);
-  cairo_surface_destroy(surface4);
-}
-
-static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, 
-    gpointer user_data)
-{
-  do_drawing(cr);
-  
-  return FALSE;
-}
-
-static void do_drawing(cairo_t *cr)
-{
-  cairo_pattern_t *pattern1;
-  cairo_pattern_t *pattern2;
-  cairo_pattern_t *pattern3;
-  cairo_pattern_t *pattern4;
-
-  pattern1 = cairo_pattern_create_for_surface(surface1);
-  pattern2 = cairo_pattern_create_for_surface(surface2);
-  pattern3 = cairo_pattern_create_for_surface(surface3);
-  pattern4 = cairo_pattern_create_for_surface(surface4);
-
-  cairo_set_source(cr, pattern1);
-  cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_REPEAT);
-  cairo_rectangle(cr, 20, 20, 100, 100);
-  cairo_fill(cr);
-
-  cairo_set_source(cr, pattern2); 
-  cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_REPEAT); 
-  cairo_rectangle(cr, 150, 20, 100, 100);
-  cairo_fill(cr);
-
-  cairo_set_source(cr, pattern3);
-  cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_REPEAT);
-  cairo_rectangle(cr, 20, 140, 100, 100);
-  cairo_fill(cr);
-
-  cairo_set_source(cr, pattern4);
-  cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_REPEAT);
-  cairo_rectangle(cr, 150, 140, 100, 100);
-  cairo_fill(cr);
-
-  cairo_pattern_destroy(pattern1);
-  cairo_pattern_destroy(pattern2);
-  cairo_pattern_destroy(pattern3);
-  cairo_pattern_destroy(pattern4);      
-}
-
-int main(int argc, char *argv[])
-{
-  GtkWidget *window;
-  GtkWidget *darea;
-
-  gtk_init(&argc, &argv);
-
-  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  
-  darea = gtk_drawing_area_new();
-  gtk_container_add(GTK_CONTAINER(window), darea);  
+  gtk_container_add(GTK_CONTAINER (window), darea);
 
   g_signal_connect(G_OBJECT(darea), "draw", 
       G_CALLBACK(on_draw_event), NULL);  
   g_signal_connect(G_OBJECT(window), "destroy",
       G_CALLBACK(gtk_main_quit), NULL);
 
-  create_surfaces();
-
   gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-  gtk_window_set_default_size(GTK_WINDOW(window), 270, 260); 
-  gtk_window_set_title(GTK_WINDOW(window), "Patterns");
+  gtk_window_set_default_size(GTK_WINDOW(window), 340, 390); 
+  gtk_window_set_title(GTK_WINDOW(window), "Linear gradients");
 
+  gtk_widget_set_app_paintable(window, TRUE);
   gtk_widget_show_all(window);
 
   gtk_main();
-
-  destroy_surfaces();
 
   return 0;
 }
