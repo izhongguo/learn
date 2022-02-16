@@ -1,29 +1,48 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <gtk/gtk.h>
- 
-int main(int argc,char **argv)
-{
-	GtkWidget *window;
-	gtk_init(&argc,&argv);     
-	window=gtk_window_new(GTK_WINDOW_TOPLEVEL);  
-	gtk_window_set_title((GtkWindow*)window,"gtk-test 2.0");
-	g_signal_connect(G_OBJECT((GtkWindow*)window),"delete_event",	G_CALLBACK(gtk_main_quit),NULL);  
-	gtk_widget_show(window); 
-	//gtk_window_fullscreen(window);
-	
-	GdkScreen *screen = gdk_screen_get_default();  
-	GdkWindow * root_window = gdk_get_default_root_window (); 
-	if (!root_window )
-	{    
-	  return TRUE;
-	}
-	int w = gdk_screen_get_width(screen);  
-	int h = gdk_screen_get_height(screen);
- 
-	GdkPixbuf * pixbuf = gdk_pixbuf_get_from_drawable(NULL, root_window, NULL,0, 0, 0, 0, w, h); 
-	gdk_pixbuf_save(pixbuf, "screen.jpg", "jpeg", NULL, "quality", "100",NULL);
- 
-	gtk_main(); 
-	return FALSE;
+
+void destroy(void) {
+  gtk_main_quit();
 }
+
+GdkPixbuf * get_screenshot(){
+    GdkPixbuf *screenshot;
+    GdkWindow *root_window;
+    gint x_orig, y_orig;
+    gint width, height;
+    root_window = gdk_get_default_root_window ();
+    gdk_drawable_get_size (root_window, &width, &height);      
+    gdk_window_get_origin (root_window, &x_orig, &y_orig);
+
+    screenshot = gdk_pixbuf_get_from_drawable (NULL, root_window, NULL,
+                                           x_orig, y_orig, 0, 0, width, height);
+    return screenshot;
+}
+
+int main (int argc, char** argv) {
+  GtkWidget* window;
+  GtkWidget* image;
+  GdkPixbuf * pixbuf;
+
+  gtk_init (&argc, &argv);
+
+
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+//  image  = gtk_image_new_from_file(argv[1]);
+
+  pixbuf = get_screenshot();
+  image = gtk_image_new_from_pixbuf(pixbuf);
+
+  gtk_signal_connect(GTK_OBJECT (window), "destroy",
+             GTK_SIGNAL_FUNC (destroy), NULL);
+
+  gtk_container_add(GTK_CONTAINER (window), image);
+  gtk_window_set_resizable(window, TRUE);
+  gtk_widget_set_size_request(window, 800, 600);
+
+  gtk_widget_show_all(window);
+
+  gtk_main();
+
+  return 0;
+}
+
