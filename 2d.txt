@@ -21,7 +21,7 @@ int main(int argc,char **argv)
 	int w = gdk_screen_get_width(screen);  
 	int h = gdk_screen_get_height(screen);
  
-	GdkPixbuf * pixbuf = gdk_pixbuf_get_from_drawable(NULL, root_window, NULL,0, 0, 0, 0, w, h); // 抓图
+	GdkPixbuf * pixbuf = gdk_pixbuf_get_from_drawable(NULL, root_window, NULL,0, 0, 0, 0, w, h); 
 	gdk_pixbuf_save(pixbuf, "screen.jpg", "jpeg", NULL, "quality", "100",NULL);
  
 	gtk_main(); 
