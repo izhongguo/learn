@@ -1,117 +1,54 @@
-#include <gtk/gtk.h>
 #include <cairo.h>
  
-/********************************************************
-功能：指定窗口区域截图，需要包含头文件cairo.h 
-参数：
-	area: 		需要截图的窗口指针
-	x, y, w, h: 截图的范围
-	path_name:	保存图片的路径名字，如 "./image/test.png"
-返回值：截图的图片pixbuf，失败返回NULL
-*********************************************************/
-GdkPixbuf *screenshot(GtkWidget *area, int x, int y, int w, int h, char *path_name)
+#define SIZE	(640)		/* 太极图大小 */
+#define CX	(SIZE / 2)	/* 太极圆中心横坐标 */
+#define CY	(SIZE / 2)	/* 太极圆中心纵坐标 */
+#define R	(SIZE / 2)	/* 太极圆半径 */
+ 
+/* 把角度转换为所对应的弧度 */
+#define ANGLE(ang)	(ang * 3.1415926 / 180.0)
+ 
+int main(int argc, char *argv[])
 {
-	GdkPixbuf *pixbuf = NULL;
-	pixbuf = gdk_pixbuf_get_from_drawable(NULL, area->window, NULL,
-            x, y, 0, 0, w, h);  //取到矩形区域图片
-	if(NULL == pixbuf){	// 如果没有获取成功，结束函数
-		printf("gdk_pixbuf_get_from_drawable failed\n");
-		return	NULL;
-	}
+	/* 创建32位RGBA颜色格式的Cairo绘图环境，直接在Memory中渲染 */
+	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SIZE + 1, SIZE + 1);
+	cairo_t* cr = cairo_create(surface);
  
-	cairo_surface_t *surface = NULL;
-	cairo_t *cr;
-	// 创建一个 Cairo 外观 
-	surface = cairo_image_surface_create ( CAIRO_FORMAT_ARGB32, w, h) ;
-	// 一个 Cairo 环境
-	cr = cairo_create( surface) ; 
-	
-	// 给cr绘图
-	gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
-	cairo_paint(cr);
-	
-	// 截图
-	cairo_surface_write_to_png ( surface, path_name ) ;
-	
-	
-	// 释放相应资源
-	cairo_destroy(cr) ;
-	cairo_surface_destroy( surface) ;
-	//g_object_unref(pixbuf);
-	
-	return pixbuf;
-}		
+	/* 绘制太极边框 */
+	cairo_set_line_width(cr, 2.0);
+	cairo_set_source_rgba(cr, 0, 0, 0, 1);
+	cairo_arc(cr, CX, CY, R, ANGLE(0), ANGLE(360));
+	cairo_stroke(cr);
  
+	/* 绘制阴阳圆 */
+	cairo_set_source_rgba(cr, 0, 0, 0, 1);
+	cairo_arc(cr, CX, CY, R, ANGLE(90), ANGLE(270));
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, 1, 1, 1, 1);
+	cairo_arc(cr, CX, CY, R, ANGLE(-90), ANGLE(90));
+	cairo_fill(cr);
  
+	/* 绘制阴阳线 */
+	cairo_set_source_rgba(cr, 0, 0, 0, 1);
+	cairo_arc(cr, CX, CY - R / 2, R / 2, ANGLE(-90), ANGLE(90));
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, 1, 1, 1, 1);
+	cairo_arc(cr, CX, CY + R / 2, R / 2, ANGLE(90), ANGLE(270));
+	cairo_fill(cr);
  
+	/* 绘制太极眼 */
+	cairo_set_source_rgba(cr, 1, 1, 1, 1);
+	cairo_arc(cr, CX, CY - R / 2, R / 10, ANGLE(0), ANGLE(360));
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, 0, 0, 0, 1);
+	cairo_arc(cr, CX, CY + R / 2, R / 10, ANGLE(0), ANGLE(360));
+	cairo_fill(cr);
  
-/* 功能：  设置背景图
- * widget: 主窗口
- * w, h:   图片的大小
- * path：  图片路径
- */
-void chang_background(GtkWidget *widget, int w, int h, const gchar *path)
-{
-	gtk_widget_set_app_paintable(widget, TRUE);		//允许窗口可以绘图
-	gtk_widget_realize(widget);	
+	/* 将Memory的渲染效果存储到图片中 */
+	cairo_surface_write_to_png(surface, "taichi.png");
+	/* 销毁并退出Cairo绘图环境 */
+	cairo_destroy(cr);
+	cairo_surface_destroy (surface);
  
-	/* 更改背景图时，图片会重叠
-	 * 这时要手动调用下面的函数，让窗口绘图区域失效，产生窗口重绘制事件（即 expose 事件）。
-	 */
-	gtk_widget_queue_draw(widget);
- 
-	GdkPixbuf *src_pixbuf = gdk_pixbuf_new_from_file(path, NULL);	// 创建图片资源对象
-	// w, h是指定图片的宽度和高度
-	GdkPixbuf *dst_pixbuf = gdk_pixbuf_scale_simple(src_pixbuf, w, h, GDK_INTERP_BILINEAR);
- 
-	GdkPixmap *pixmap = NULL;
- 
-	/* 创建pixmap图像; 
-	 * NULL：不需要蒙版; 
-	 * 123： 0~255，透明到不透明
-	 */
-	gdk_pixbuf_render_pixmap_and_mask(dst_pixbuf, &pixmap, NULL, 128);
-	// 通过pixmap给widget设置一张背景图，最后一个参数必须为: FASLE
-	gdk_window_set_back_pixmap(widget->window, pixmap, FALSE);
- 
-	// 释放资源
-	g_object_unref(src_pixbuf);
-	g_object_unref(dst_pixbuf);
-	g_object_unref(pixmap);
-}
- 
-// 按钮"clicked"信号的处理函数
-void deal_button(GtkWidget *w, gpointer data)
-{
-	// 截图，指定窗口区域为(0, 0, 300, 300)，在当前路径保存图片为save.png
-	screenshot(GTK_WIDGET(data), 0, 0, 300, 300, "save.png");
-}
- 
-int main( int argc, char *argv[])
-{
-	gtk_init(&argc, &argv);
- 
-	//主窗口操作
-	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
- 
-	gtk_window_set_title(GTK_WINDOW(window), "设置窗口背景图");
-	gtk_widget_set_size_request(window, 500, 450);
- 
-	chang_background(window, 500, 400, "image.jpg");	// 设置窗口背景图
-	
-	GtkWidget *table = gtk_table_new(3, 3, TRUE);   // 表格布局，3行3列
-	gtk_container_add(GTK_CONTAINER(window), table); // 容器加入窗口
- 
-	// 截图按钮
-	GtkWidget *button = gtk_button_new_with_label("截图");
-	gtk_table_attach_defaults(GTK_TABLE(table), button, 2, 3, 2, 3); 
-	// 处理按钮的信号，把窗口指针window传给回调函数deal_button()
- 	g_signal_connect(button, "clicked", G_CALLBACK(deal_button), window);
-	
- 
-	gtk_widget_show_all(window); // 显示所有部件
- 
-	gtk_main();
-	
 	return 0;
 }
