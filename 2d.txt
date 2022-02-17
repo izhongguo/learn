@@ -1,54 +1,86 @@
 #include <cairo.h>
+#include <gtk/gtk.h>
  
-#define SIZE	(640)		/* 太极图大小 */
-#define CX	(SIZE / 2)	/* 太极圆中心横坐标 */
-#define CY	(SIZE / 2)	/* 太极圆中心纵坐标 */
-#define R	(SIZE / 2)	/* 太极圆半径 */
+gpointer text[7] = { "Z", "e", "t", "C", "o", "d", "e" };
+gboolean timer = TRUE;
  
-/* 把角度转换为所对应的弧度 */
-#define ANGLE(ang)	(ang * 3.1415926 / 180.0)
  
-int main(int argc, char *argv[])
+static gboolean
+on_expose_event(GtkWidget *widget,
+    GdkEventExpose *event,
+    gpointer data)
 {
-	/* 创建32位RGBA颜色格式的Cairo绘图环境，直接在Memory中渲染 */
-	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SIZE + 1, SIZE + 1);
-	cairo_t* cr = cairo_create(surface);
+  cairo_t *cr;
+  cairo_text_extents_t extents;
+  static gint count = 0;
  
-	/* 绘制太极边框 */
-	cairo_set_line_width(cr, 2.0);
-	cairo_set_source_rgba(cr, 0, 0, 0, 1);
-	cairo_arc(cr, CX, CY, R, ANGLE(0), ANGLE(360));
-	cairo_stroke(cr);
+  cr = gdk_cairo_create(widget->window);
  
-	/* 绘制阴阳圆 */
-	cairo_set_source_rgba(cr, 0, 0, 0, 1);
-	cairo_arc(cr, CX, CY, R, ANGLE(90), ANGLE(270));
-	cairo_fill(cr);
-	cairo_set_source_rgba(cr, 1, 1, 1, 1);
-	cairo_arc(cr, CX, CY, R, ANGLE(-90), ANGLE(90));
-	cairo_fill(cr);
+  cairo_select_font_face(cr, "Courier",
+      CAIRO_FONT_SLANT_NORMAL,
+      CAIRO_FONT_WEIGHT_BOLD);
  
-	/* 绘制阴阳线 */
-	cairo_set_source_rgba(cr, 0, 0, 0, 1);
-	cairo_arc(cr, CX, CY - R / 2, R / 2, ANGLE(-90), ANGLE(90));
-	cairo_fill(cr);
-	cairo_set_source_rgba(cr, 1, 1, 1, 1);
-	cairo_arc(cr, CX, CY + R / 2, R / 2, ANGLE(90), ANGLE(270));
-	cairo_fill(cr);
+  cairo_set_font_size(cr, 35);  
+  cairo_set_source_rgb(cr, 0.2, 0.2, 0.2); 
  
-	/* 绘制太极眼 */
-	cairo_set_source_rgba(cr, 1, 1, 1, 1);
-	cairo_arc(cr, CX, CY - R / 2, R / 10, ANGLE(0), ANGLE(360));
-	cairo_fill(cr);
-	cairo_set_source_rgba(cr, 0, 0, 0, 1);
-	cairo_arc(cr, CX, CY + R / 2, R / 10, ANGLE(0), ANGLE(360));
-	cairo_fill(cr);
+  gint i;
+  gint x = 0;
  
-	/* 将Memory的渲染效果存储到图片中 */
-	cairo_surface_write_to_png(surface, "taichi.png");
-	/* 销毁并退出Cairo绘图环境 */
-	cairo_destroy(cr);
-	cairo_surface_destroy (surface);
+  for (i = 0; i < count; i++) {
+      cairo_text_extents(cr, text[i], &extents);
+      x += extents.width + 2;
+      cairo_move_to(cr, x + 30, 50);
+      cairo_show_text(cr, text[i]);  
+  }
  
-	return 0;
+  count++;
+ 
+  if (count == 8) {
+      timer = FALSE;
+      count = 0;
+  }
+ 
+  cairo_destroy(cr);
+ 
+  return FALSE;
+}
+ 
+static gboolean
+time_handler (GtkWidget *widget)
+{
+  if (widget->window == NULL) return FALSE;
+ 
+  if (!timer) return FALSE;
+ 
+  gtk_widget_queue_draw(widget);
+  return TRUE;
+}
+ 
+ 
+int main (int argc, char *argv[])
+{
+  GtkWidget *window;
+ 
+  gtk_init(&argc, &argv);
+ 
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+ 
+  g_signal_connect(window, "expose-event",
+      G_CALLBACK(on_expose_event), NULL);
+  g_signal_connect(window, "destroy",
+      G_CALLBACK(gtk_main_quit), NULL);
+ 
+  gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+  gtk_window_set_default_size(GTK_WINDOW(window), 300, 90); 
+  gtk_window_set_title(GTK_WINDOW(window), "ZetCode");
+  gtk_widget_set_app_paintable(window, TRUE);
+ 
+  g_timeout_add(1000, (GSourceFunc) time_handler, (gpointer) window);
+ 
+  gtk_widget_show_all(window);
+ 
+ 
+  gtk_main();
+ 
+  return 0;
 }
