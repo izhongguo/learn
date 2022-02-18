@@ -1,32 +1,102 @@
 #include <cairo.h>
-#include <gdk/gdk.h>
-
-int main (int argc, char *argv[])
+#include <gtk/gtk.h>
+ 
+ 
+gboolean timer = TRUE;
+cairo_surface_t *image;
+ 
+static gboolean
+on_expose_event(GtkWidget *widget,
+    GdkEventExpose *event,
+    gpointer data)
 {
-    gdk_init(&argc, &argv);
-
-    GdkDisplayManager* mgr = gdk_display_manager_get();
-    GdkDisplay* display = gdk_display_manager_get_default_display(mgr);
-    GdkScreen *screen = gdk_display_get_default_screen(display);
-    GdkWindow *root_win = gdk_screen_get_root_window(screen);
-
-    //GdkWindow *root_win = gdk_window_get_toplevel(gdk_get_default_root_window ());
-    //GdkWindow *root_win = gdk_get_default_root_window ();
-    gint width = gdk_window_get_width(root_win);
-    gint height = gdk_window_get_height(root_win);
-fprintf(stderr, "%d %d", width, height);
-    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
-                                                          width, height);
-    GdkPixbuf *pb = gdk_pixbuf_get_from_drawable(NULL, root_win, NULL,  0, 0, 0, 0, width, height);
-
-    cairo_t *cr = cairo_create(surface);
-    gdk_cairo_set_source_pixbuf(cr, pb, 0, 0);
-    cairo_paint(cr);
-
-    cairo_surface_write_to_png(surface, "image.png");
-
-    cairo_destroy(cr);
-    cairo_surface_destroy(surface);
-
-    return 0;
+  cairo_t *cr;
+  cairo_t *ic;
+ 
+  cairo_surface_t *surface;
+ 
+  static gdouble angle = 0;
+  static gint w = 0;
+  static gint h = 0;
+ 
+  static gint image_width = 0;
+  static gint image_height = 0;
+ 
+  static gint count = 0;
+ 
+  cr = gdk_cairo_create(widget->window);
+ 
+  gint width, height;
+  gtk_window_get_size(GTK_WINDOW(widget), &width, &height); 
+ 
+  surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, image_width, image_height);  
+ 
+  image_width = cairo_image_surface_get_width(image);
+  image_height = cairo_image_surface_get_height(image);
+  w = image_width;  
+ 
+  ic = cairo_create(surface);
+ 
+  gint i, j;
+  for (i = 0; i <= image_height; i+=7) {
+      for (j=0 ; j < count; j++) {
+          cairo_move_to(ic, 0, i+j);
+          cairo_line_to(ic, w, i+j);
+      }
+  }
+ 
+  count++;
+  if ( count == 8) timer = FALSE;
+ 
+  cairo_stroke(ic);
+ 
+  cairo_set_source_surface(cr, image, 10, 10);
+  cairo_mask_surface(cr, surface, 10, 10);
+ 
+  cairo_surface_destroy(surface);
+ 
+  cairo_destroy(cr);
+  cairo_destroy(ic);
+  return FALSE;
+}
+ 
+static gboolean
+time_handler (GtkWidget *widget)
+{
+  if (widget->window == NULL) return FALSE;
+ 
+  if (!timer) return FALSE;
+ 
+  gtk_widget_queue_draw(widget);
+  return TRUE;
+}
+ 
+int main(int argc, char *argv[])
+{
+  GtkWidget *window;
+ 
+  image = cairo_image_surface_create_from_png("plaveckycastle.png");
+ 
+  gtk_init(&argc, &argv);
+ 
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+ 
+  g_signal_connect(G_OBJECT(window), "expose-event",
+      G_CALLBACK(on_expose_event), NULL);
+  g_signal_connect(G_OBJECT(window), "destroy",
+      G_CALLBACK(gtk_main_quit), NULL);
+ 
+  gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+  gtk_window_set_default_size(GTK_WINDOW(window), 325, 250); 
+ 
+  gtk_widget_set_app_paintable(window, TRUE);
+  g_timeout_add(400, (GSourceFunc) time_handler, (gpointer) window);
+ 
+  gtk_widget_show_all(window);
+ 
+  gtk_main();
+ 
+  cairo_surface_destroy(image);
+ 
+  return 0;
 }
